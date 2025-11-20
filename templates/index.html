@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LANdToss</title>
+    <link rel="stylesheet" href="/templates/style.css">
+</head>
+<body>
+    <h2>LANdToss</h2>
+    <div id="user-data">
+        <h3 id="nickname">Nickname</h3>
+        <h5 id="user-id">User ID</h5>
+    </div>
+    <form id="form">
+        <div id="cont">
+            <div id="dropzone">
+                <input type="file" id="file-input" multiple hidden>
+                Drop files here, or click to upload.
+            </div>
+            <div id="users">
+                <div>Online Users</div>
+                <ul id="user-list"></ul>
+            </div>
+        </div>
+        <div id="preview-container"></div>
+        <div id="upload-button" role="button">Toss</div>
+    </form>
+    <!-- <div id="transfer-request" class="modal">
+        <p>_____ wants to send you 3 files: example.png, example.pdf, example.mp4</p>
+        <div id="modal-buttons">
+            <div id="accept" role="button">Accept</div>
+            <div id="decline" role="button">Decline</div>
+        </div>
+    </div> -->
+    <script src="/templates/script.js"></script>
+    <script src="/templates/ws.js"></script>
+</body>
+</html>

@@ -1,0 +1,177 @@
+body {
+    margin: 0;
+    padding: 20px;
+}
+
+h2 {
+    text-align: center;
+}
+
+#user-data {
+    margin: 10px auto;
+    text-align: left;
+    max-width: 600px;
+}
+
+#nickname {
+    margin: 0;
+}
+#user-id {
+    margin: 0;
+}
+
+#cont {
+    display: flex;
+    flex-direction: row;
+    max-width: 600px;
+    height: 200px;
+    margin: 10px auto;
+}
+
+#cont > div {
+    margin: 5px;
+    border: 2px dashed #ccc;
+    border-radius: 5px;
+}
+
+#dropzone {
+    display: flex;
+    width: 65%;
+    justify-content: center;
+    align-items: center;
+    max-width: 400px;
+    text-align: center;
+    border: 2px dashed #ccc;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+#dropzone.drag-over {
+    background-color: #eee;
+}
+
+#users {
+    width: 35%;
+}
+
+#users > div {
+    padding: 5px 0 0 0;
+    text-align: center;
+    font-weight: bold;
+}
+
+#user-list {
+    list-style-type: none;
+    max-width: 200px;
+    text-align: center;
+    padding: 0;
+    margin: 0;
+}
+
+#user-list > li {
+    width: 100%;
+}
+
+#user-list > li.selected {
+    background-color: rgb(182, 182, 182);
+}
+
+#preview-container {
+    display: flex;
+    flex-direction: column;
+    margin: 10px auto;
+    border: 1px solid #ddd;
+    border-radius: 2px;
+    background-color: #eee;
+    min-height: 20px;
+    max-width: 600px;
+}
+#upload-button {
+    display: flex;
+    flex-direction: column;
+    margin: 10px auto;
+    border: 1px solid #b5ccff;
+    border-radius: 2px;
+    background-color: #b5ccff;
+    min-height: 25px;
+    max-width: 600px;
+    text-align: center;
+    justify-content: center;
+    color: #657089;
+}
+#upload-button.alive {
+    border: 1px solid #719dff;
+    background-color: #719dff;
+    color: black;
+}
+#upload-button.dead {
+    border: 1px solid #b5ccff;
+    background-color: #b5ccff;
+    color: #657089;
+    
+}
+
+
+.preview-item {
+    display: flex;
+    flex-direction: row;
+    padding: 3px 5px;
+    border-radius: 2px;
+    align-items: center;
+    margin: 5px;
+    gap: 10px;
+}
+
+
+.preview-item:hover {
+    background-color: #e7e7e7;
+}
+
+.preview-image {
+    object-fit: cover;
+    width: 40px;
+    height: 40px;
+}
+
+.file-details {
+    font-size: 14px;
+    color: #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.delete-button {
+    margin-left: auto;
+}
+
+.modal {
+    display: flex;
+    flex-direction: column;
+    background-color: rgb(215, 215, 215);
+    border: 2px solid rgb(167, 167, 167);
+    border-radius: 2px;
+    max-width: 600px;
+    height: 75px;
+    text-align: center;
+    margin: 10px auto;
+}
+
+#modal-buttons {
+    display: flex;
+    flex-direction: row;
+    width: auto;
+    text-align: center;
+}
+
+#modal-buttons > div {
+    margin: 0px auto;
+}
+
+#accept {
+    background-color: lightgreen;
+}
+
+#decline {
+    background-color: lightcoral;
+}
