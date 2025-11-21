@@ -3,9 +3,9 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from ConnectionManager import ConnectionManager
+from utils import generate_nickname
 import json
 import uuid
-import random
 
 app = FastAPI()
 manager = ConnectionManager()
@@ -40,14 +40,15 @@ async def websocket_endpoint(websocket: WebSocket):
                     from_user = message['from_user']
                     to_user = message['to_user']
                     files = message['files']
+                    file_count = message['file_count']
                     
                     await manager.create_pending_transfer(
                         transfer_id=transfer_id,
                         from_user=from_user,
                         to_user=to_user,
-                        files=files
+                        files=files,
+                        file_count=file_count
                     )
-                    print(f"got the request from {from_user}")
 
                 if message_type == 'transfer_response':
                     transfer_id = message['transfer_id']
@@ -56,6 +57,7 @@ async def websocket_endpoint(websocket: WebSocket):
                         await manager.accept_transfer(transfer_id=transfer_id)
                     else:
                         await manager.decline_transfer(transfer_id=transfer_id)
+
 
                 if message_type == 'file_start':
                     await manager.initialize_file_transfer(
@@ -93,12 +95,3 @@ async def websocket_endpoint(websocket: WebSocket):
     except Exception as e:
         print(f"Unexpected error occured for {user_id}: {e}")
         await manager.disconnect(user_id)
-    
-def generate_nickname():
-    adjectives = ['Amused', 'Brave', 'Cloudy', 'Distinct', 'Calm', 'Clumsy', 'Dizzy', 'Eager', 'Happy', 'Funny', 'Kind', 'Lazy', 'Super', 'Wild']
-    animals = ['Cat', 'Dog', 'Fish', 'Deer', 'Panda', 'Eagle', 'Fox', 'Tiger', 'Falcon', 'Lion']
-    adj = random.choice(adjectives)
-    animal = random.choice(animals)
-    number = random.randint(10, 99)
-
-    return f'{adj}{animal}{number}'

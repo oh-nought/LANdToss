@@ -166,3 +166,111 @@ function removeFile(file, item) {
 function generateUUID() {
     return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16))
 }
+
+function handleUserInfo(userId, nickName) {
+    document.getElementById('nickname').textContent = `You are ${nickName}`
+    document.getElementById('user-id').textContent = userId 
+}
+
+function handleUserList(onlineUsers) {
+    const userList = document.getElementById('user-list')
+    userList.innerHTML = ''
+
+    for (const user of onlineUsers) {
+        const userItem = document.createElement('li')
+        userItem.setAttribute('data-user-id', user.id)
+        if (user.id === userId) {
+            userItem.textContent = `${user.nickname} (You)`
+        } else {
+            userItem.textContent = user.nickname
+            userItem.addEventListener('click', (e) => {
+                e.preventDefault()
+                userItem.classList.toggle('selected')
+                const isSelected = userItem.classList.contains('selected')
+                if (isSelected) {
+                    selectedRecipients.push(userItem.dataset.userId)
+                } else {
+                    const index = selectedRecipients.indexOf(userItem.dataset.userId)
+                    selectedRecipients.splice(index, 1)
+                }
+                console.log(selectedRecipients)
+            })
+        }
+
+        userList.appendChild(userItem)
+    }
+    console.log(userList)
+}
+
+
+function handleTransferOffers(transferId, fromNickname, fileCount, fileNames) {
+
+    const modal = document.createElement('div')
+    const modalText = document.createElement('p')
+    const buttons = document.createElement('div')
+    const acceptButton = document.createElement('div')
+    const declineButton = document.createElement('div')
+    
+    
+    modal.setAttribute('id', 'transfer-request')
+    modal.classList.add('modal')
+    buttons.setAttribute('id', 'modal-buttons')
+    acceptButton.setAttribute('id', 'accept')
+    declineButton.setAttribute('id', 'decline')
+    
+    modalText.textContent = `${fromNickname} wants to send you ${fileCount} file(s): ${fileNames} `
+    acceptButton.textContent = 'Accept'
+    declineButton.textContent = 'Decline'
+    
+    modal.appendChild(modalText)
+    modal.appendChild(buttons)
+    buttons.appendChild(acceptButton)
+    buttons.appendChild(declineButton)
+    document.body.appendChild(modal)
+    
+    modal.appendChild(modalText)
+    modal.appendChild(buttons)
+    buttons.appendChild(acceptButton)
+    buttons.appendChild(declineButton)
+
+
+    // needed to create own event because they're async; rest of the function runs without these, and in the end returns nothing
+    acceptButton.addEventListener('click', () => {
+        document.dispatchEvent(new CustomEvent('transferresponse', {
+            detail: {
+                transferId: transferId,
+                response: true
+            }
+        }));
+        modal.remove()
+    })
+
+    declineButton.addEventListener('click', () => {
+        document.dispatchEvent(new CustomEvent('transferresponse', {
+            detail: {
+                transferId: transferId,
+                response: false
+            }
+        }));
+        modal.remove()
+    })
+
+    // 30s timeout?
+}
+
+function handleTransferDecline(toNickname) {
+    const modal = document.createElement('div')
+    const modalText = document.createElement('p')
+
+    modal.setAttribute('id', 'transfer-update')
+    modal.classList.add('modal')
+
+    modalText.textContent = `${toNickname} has declined.`
+
+    modal.appendChild(modalText)
+    document.body.appendChild(modal)
+
+    setTimeout(() => {
+        modal.remove()
+    }, 5000)
+}

@@ -9,135 +9,141 @@ let nickName = null
 let onlineUsers = []
 let selectedRecipients = []
 let pendingTransfers = {}
+let receivingFiles = {}
+let expectingBinary = null
 
 ws.addEventListener('message', (e) => {
-    const message = JSON.parse(e.data)
-
-    if (message['type'] === "connection_established") {
-        userId = message.user_id
-        nickName = message.nickname
-
-        document.getElementById('nickname').textContent = `You are ${nickName}`
-        document.getElementById('user-id').textContent = userId 
-    }
-
-    else if (message['type'] === "user_list") {
-        const userList = document.getElementById('user-list')
-        onlineUsers = message['users']
-        userList.innerHTML = ''
-
-        for (user of onlineUsers) {
-            const userItem = document.createElement('li')
-            userItem.setAttribute('data-user-id', user.id)
-            if (user.id === userId) {
-                userItem.textContent = `${user.nickname} (You)`
-            } else {
-                userItem.textContent = user.nickname
-                userItem.addEventListener('click', (e) => {
-                    e.preventDefault()
-                    userItem.classList.toggle('selected')
-                    const isSelected = userItem.classList.contains('selected')
-                    if (isSelected) {
-                        selectedRecipients.push(userItem.dataset.userId)
-                    } else {
-                        const index = selectedRecipients.indexOf(userItem.dataset.userId)
-                        selectedRecipients.splice(index, 1)
-                    }
-                    console.log(selectedRecipients)
-                })
-            }
-
-            userList.appendChild(userItem)
+    if (typeof e.data === "string") {
+        const message = JSON.parse(e.data)
+    
+        if (message.type === "connectionEstablished") {
+            userId = message.userId
+            nickName = message.nickname
+    
+            handleUserInfo(userId, nickName)
         }
-        console.log(userList)
-    }
+    
+        else if (message.type === "userList") {
+            onlineUsers = message.users
+            handleUserList(onlineUsers)
+        }
+    
+        else if (message.type === "transferOffer") {
+            const transferId = message.transferId
+            const fromNickname = message.fromNickname
+            const fileCount = Object.keys(message.files).length
+            let fileNames = []
+            
+            Object.keys(message.files).forEach(key => {
+                fileNames.push(message.files[key]['name'])
+            })
 
-    else if (message['type'] === "transfer_offer") {
-        const modal = document.createElement('div')
-        const modalText = document.createElement('p')
-        const buttons = document.createElement('div')
-        const acceptButton = document.createElement('div')
-        const declineButton = document.createElement('div')
+            fileNames = fileNames.join(', ')
 
-        modal.setAttribute('id', 'transfer-request')
-        modal.classList.add('modal')
-        buttons.setAttribute('id', 'modal-buttons')
-        acceptButton.setAttribute('id', 'accept')
-        declineButton.setAttribute('id', 'decline')
-        const fileNames = message['files'].map(f => f.name).join(', ')
-        modalText.textContent = `${message['from_nickname']} wants to send you ${message['files'].length} file(s): ${fileNames} `
+            handleTransferOffers(transferId, fromNickname, fileCount, fileNames)
+            
+            document.addEventListener('transferresponse', (e) => {
+                const transferId = e.detail.transferId;
+                const response = e.detail.response;
+
+                if (response) {
+                    ws.send(JSON.stringify({
+                        type: "transfer_response",
+                        transfer_id: message.transferId,
+                        accepted: true
+                    }))
+                } else {
+                    ws.send(JSON.stringify({
+                        type: "transfer_response",
+                        transfer_id: message.transferId,
+                        accepted: false
+                    }))
+                }
+            })
+        }
+    
+        else if (message.type === "transferAccepted") {
+            const transferId = message.transferId
+            const transfer = pendingTransfers[transferId]
+            
+            if (!transfer) {
+                console.error(`Transfer ${transferId} not found`)
+                return
+            }
+    
+            const metadata = transfer.metadata
+            const files = transfer.files
+    
+            for (const m of metadata) {
+                const file = files.find(f => f.name === m.name && f.size === m.size)
+
+                if (file) {
+                    sendBinary(transferId, m.fileId, file)
+                } else {
+                    console.error(`File not found for metadata: ${m.name}`)
+                }
+            }
+    
+            delete pendingTransfers[transferId]
+        }
         
-        modal.appendChild(modalText)
-        modal.appendChild(buttons)
-        buttons.appendChild(acceptButton)
-        buttons.appendChild(declineButton)
-
-        acceptButton.textContent = 'Accept'
-        declineButton.textContent = 'Decline'
-        document.body.appendChild(modal)
-
-        acceptButton.addEventListener('click', () => {
-            ws.send(JSON.stringify({
-                type: "transfer_response",
-                transfer_id: message['transfer_id'],
-                accepted: true
-            }))
-
-            modal.remove()
-        })
-
-        declineButton.addEventListener('click', () => {
-            ws.send(JSON.stringify({
-                type: "transfer_response",
-                transfer_id: message['transfer_id'],
-                accepted: false
-            }))
-
-            modal.remove()
-        })
-
-    }
-
-    else if (message['type'] === "transfer_accepted") {
-        const transferId = message['transfer_id']
-        const transfer = pendingTransfers[transferId]
+        else if (message.type === "transferDeclined") {
+            const transferId = message.transferId
         
-        if (!transfer) {
-            console.error(`Transfer ${transferId} not found`)
+            handleTransferDecline(message.toNickname)
+    
+            delete pendingTransfers[transferId]
+        }
+    
+        else if (message.type === "fileStart") {
+            const fileId = message.fileId
+            const totalChunks = message.totalChunks
+            const filename = message.filename
+            const size = message.size
+    
+            receivingFiles[fileId] = {
+                chunks: [],
+                totalChunks: totalChunks,
+                chunksRecieved: 0,
+                filename: filename,
+                size: size
+            }
+        }
+    
+        else if (message.type === "fileChunk") {
+            const fileId = message.fileId
+            const chunkIndex = message.chunkIndex
+
+            expectingBinary = {
+                fileId: fileId,
+                chunkIndex: chunkIndex
+            }
+        }
+
+        else if (message.type === "fileEnd") {
+            fileId = message['fileId']
+
+            // for now; need to implement download trigger
+            console.log(receivingFiles[fileId].chunks)
+        }
+    } else {
+        
+        // confirm there is a flag
+        if (!expectingBinary) {
+            console.error("Got binary but wasn't expecting any")
             return
         }
 
-        const metadata = transfer.metadata
-        const files = transfer.files
+        const fileId = expectingBinary.fileId
+        const chunkIndex = expectingBinary.chunkIndex
 
-        for (file of files) {
-            sendBinary(transferId, file['file_id'], file)
-        }
+        receivingFiles[fileId].chunks[chunkIndex] = e.data
+        receivingFiles[fileId].chunksRecieved += 1
 
-        delete pendingTransfers[transferId]
+        // clear expectation flag
+        expectingBinary = null
     }
-    
-    else if (message['type'] === "transfer_declined") {
-        const transferId = message['transfer_id']
-        
-        const modal = document.createElement('div')
-        const modalText = document.createElement('p')
-    
-        modal.setAttribute('id', 'transfer-update')
-        modal.classList.add('modal')
-    
-        transfer_id = message['transfer_id']
-        modalText.textContent = `${message['to_nickname']} has declined.`
 
-        modal.appendChild(modalText)
-        document.body.appendChild(modal)
-
-        setTimeout(() => {
-            modal.remove()
-        }, 5000)
-
-        delete pendingTransfers[transferId]
-    }
 })
 
 
@@ -146,7 +152,7 @@ async function sendBinary(transferId, fileId, file) {
     totalChunks = Math.ceil(file.size / chunkSize)
 
     ws.send(JSON.stringify({
-        type: 'file_start',
+        type: "file_start",
         transfer_id: transferId,
         file_id: fileId,
         total_chunks: totalChunks,
@@ -161,7 +167,7 @@ async function sendBinary(transferId, fileId, file) {
         buffer = await chunk.arrayBuffer()
 
         ws.send(JSON.stringify({
-            type: 'file_chunk',
+            type: "file_chunk",
             transfer_id: transferId,
             file_id: fileId,
             chunk_index: chunkIndex
@@ -170,7 +176,7 @@ async function sendBinary(transferId, fileId, file) {
     }
 
     ws.send(JSON.stringify({
-        type: 'file_end',
+        type: "file_end",
         transfer_id: transferId,
         file_id: fileId
     }))
@@ -178,22 +184,22 @@ async function sendBinary(transferId, fileId, file) {
 
 function tossFiles() {
     if (selectedRecipients.length === 0) {
-        alert('hey pal you need to select someone')
+        alert("hey pal you need to select someone")
         return
     }
 
-    const uploadedFiles = fileList.map((file, index) => ({
-        file_id: generateUUID(),
+    const uploadedFiles = fileList.map(file => ({
+        fileId: generateUUID(),
         name: file.name,
         date_uploaded: new Date(),
         size: file.size,
         type: file.type
     }))
     
-    for (recipient of selectedRecipients) {
+    for (const recipient of selectedRecipients) {
         const transferId = generateUUID()
         
-        pendingTransfers[message['transfer_id']] = {
+        pendingTransfers[transferId] = {
             files: fileList,
             metadata: uploadedFiles
         }
@@ -203,7 +209,8 @@ function tossFiles() {
             type: "transfer_request",
             from_user: userId,
             to_user: recipient,
-            files: uploadedFiles
+            files: uploadedFiles,
+            file_count: uploadedFiles.length
         }))
         console.log(`sent to ${recipient}`)
     }
