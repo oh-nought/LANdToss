@@ -49,13 +49,13 @@ ws.addEventListener('message', (e) => {
                 if (response) {
                     ws.send(JSON.stringify({
                         type: "transfer_response",
-                        transfer_id: message.transferId,
+                        transfer_id: transferId,
                         accepted: true
                     }))
                 } else {
                     ws.send(JSON.stringify({
                         type: "transfer_response",
-                        transfer_id: message.transferId,
+                        transfer_id: transferId,
                         accepted: false
                     }))
                 }
@@ -100,14 +100,18 @@ ws.addEventListener('message', (e) => {
             const totalChunks = message.totalChunks
             const filename = message.filename
             const size = message.size
+            const filetype = message.filetype
     
             receivingFiles[fileId] = {
                 chunks: [],
                 totalChunks: totalChunks,
                 chunksRecieved: 0,
                 filename: filename,
-                size: size
+                size: size,
+                filetype: filetype
             }
+
+            console.log(receivingFiles)
         }
     
         else if (message.type === "fileChunk") {
@@ -122,13 +126,14 @@ ws.addEventListener('message', (e) => {
 
         else if (message.type === "fileEnd") {
             fileId = message['fileId']
+            const chunks = receivingFiles[fileId].chunks
+            const filename = receivingFiles[fileId].filename
+            const filetype = receivingFiles[fileId].filetype
 
-            // for now; need to implement download trigger
-            console.log(receivingFiles[fileId].chunks)
+            buildFile(chunks, filename, filetype)
         }
     } else {
         
-        // confirm there is a flag
         if (!expectingBinary) {
             console.error("Got binary but wasn't expecting any")
             return
@@ -140,7 +145,6 @@ ws.addEventListener('message', (e) => {
         receivingFiles[fileId].chunks[chunkIndex] = e.data
         receivingFiles[fileId].chunksRecieved += 1
 
-        // clear expectation flag
         expectingBinary = null
     }
 
@@ -153,12 +157,15 @@ async function sendBinary(transferId, fileId, file) {
 
     ws.send(JSON.stringify({
         type: "file_start",
+        filename: file.name,
         transfer_id: transferId,
         file_id: fileId,
         total_chunks: totalChunks,
-        size: file.size
+        size: file.size,
+        filetype: file.type
     }))
 
+    // slicing files into 64kb chunks 
     for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
         start = chunkIndex * chunkSize
         end = Math.min(start + chunkSize, file.size)
@@ -216,3 +223,14 @@ function tossFiles() {
     }
 }
 
+function buildFile(chunks, filename, filetype) {
+    const combinedBlob = new Blob(chunks, { type: filetype } )
+    const url = URL.createObjectURL(combinedBlob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename
+    document.body.append(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+}

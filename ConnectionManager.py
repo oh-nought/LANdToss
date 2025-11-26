@@ -65,7 +65,7 @@ class ConnectionManager:
             transfer_data = self.pending_transfers[transfer_id]
             sender_id = transfer_data['from']
             recipient_id = transfer_data['to']
-            files = transfer_data['files'] # transfer_data['files'] is a list of dicts
+            files = transfer_data['files']
             file_count = transfer_data['file_count']
 
 
@@ -122,9 +122,10 @@ class ConnectionManager:
         await recipient_websocket.send_text(json.dumps({
             'type': 'fileStart',
             'fileId': file_id,
-            'filename': metadata.get('name'),
+            'filename': metadata['filename'],
             'totalChunks': metadata['total_chunks'],
-            'size': metadata['size']
+            'size': metadata['size'],
+            'filetype': metadata['filetype'],
         }))
 
     async def prepare_for_chunk(self, sender_websocket, transfer_id, file_id, chunk_index):
@@ -143,6 +144,7 @@ class ConnectionManager:
         file_id = self.expecting_binary[sender_websocket]['file_id']
         chunk_index = self.expecting_binary[sender_websocket]['chunk_index']
 
+        # send chunk reference then actual binary
         await recipient_websocket.send_text(json.dumps({
             'type': 'fileChunk',
             'fileId': file_id,
@@ -183,7 +185,6 @@ class ConnectionManager:
 
             # maybe log radxa metrics if in use
 
-            # clean up transfer
             del transfer
 
     async def broadcast_user_list(self):
