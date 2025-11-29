@@ -1,11 +1,15 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from ConnectionManager import ConnectionManager
 from utils import generate_nickname
+import socket
+import uvicorn
 import json
 import uuid
+from settings import *
 
 app = FastAPI()
 manager = ConnectionManager()
@@ -31,9 +35,6 @@ async def websocket_endpoint(websocket: WebSocket):
             if 'text' in data:
                 message = json.loads(data['text'])
                 message_type = message['type']
-
-                print("recieved message:", message)
-                print("message type", message_type)
             
                 if message_type == 'transfer_request':
                     transfer_id = message['transfer_id']
@@ -95,3 +96,15 @@ async def websocket_endpoint(websocket: WebSocket):
     except Exception as e:
         print(f"Unexpected error occured for {user_id}: {e}")
         await manager.disconnect(user_id)
+
+
+if __name__ == "__main__":
+    host = socket.gethostname()
+    ip = socket.gethostbyname(host)
+    print('LANdToss Server')
+    print(f"""
+
+    Visit: http://{ip}:{int(PORT)} to connect
+          
+        """)
+    uvicorn.run("server:app", host=HOST, port=int(PORT))
