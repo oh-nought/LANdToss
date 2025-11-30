@@ -1,4 +1,4 @@
-const placeholderIcon = '/templates/images/file_placeholder_icon.png'
+const placeholderIcon = '/client/images/file_placeholder_icon.png'
 const form = document.getElementById('form')
 const dropZone = document.getElementById('dropzone')
 const fileInput = document.getElementById('file-input')
