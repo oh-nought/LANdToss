@@ -4,8 +4,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from ConnectionManager import ConnectionManager
-from utils import generate_nickname
-import socket
+from utils import generate_nickname, get_ip
 import uvicorn
 import json
 import uuid
@@ -14,8 +13,13 @@ from settings import *
 app = FastAPI()
 manager = ConnectionManager()
 
-app.mount("/client", StaticFiles(directory="client"), name="client")
-templates = Jinja2Templates(directory="client")
+file_dir = os.path.dirname(os.path.abspath(__file__))
+root = os.path.dirname(file_dir)
+client_dir = os.path.join(root, "client")
+
+
+app.mount("/client", StaticFiles(directory=client_dir), name="client")
+templates = Jinja2Templates(directory=client_dir)
 
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
@@ -99,8 +103,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
 
 if __name__ == "__main__":
-    host = socket.gethostname()
-    ip = socket.gethostbyname(host)
+    ip = get_ip()
     print('LANdToss Server')
     print(f"""
 
