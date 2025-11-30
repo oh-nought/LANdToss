@@ -14,8 +14,8 @@ from settings import *
 app = FastAPI()
 manager = ConnectionManager()
 
-app.mount("/templates", StaticFiles(directory="templates"), name="templates")
-templates = Jinja2Templates(directory="templates")
+app.mount("/client", StaticFiles(directory="client"), name="client")
+templates = Jinja2Templates(directory="client")
 
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
